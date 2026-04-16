@@ -84,7 +84,7 @@ if __name__ == '__main__':
         num_tokens=num_tokens, 
         num_nonembed_params=10 * 10**9, 
         gpu_type='h100', 
-        num_gpus=8,
+        num_gpus=1,
         mfu=0.4)
     
 

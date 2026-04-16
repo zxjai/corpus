@@ -1,3 +1,4 @@
+import gzip
 import json
 from pathlib import Path
 
@@ -6,65 +7,45 @@ from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
 from loguru import logger
 from rich.console import Console
 
+from corpus.datasets.base import DataFileExtension, HuggingFaceDataset
 
-class InstitutionalBooks:
-    def __init__(self):
-        self.tag = 'institutional/institutional-books-1.0'
-    
-    def ls(self, log=True):
-        SHOW_NUM = 2
 
-        parquet_files = [
-            f for f in list_repo_files(repo_id=self.tag, repo_type="dataset") 
-            if f.endswith(".parquet")
-        ]
+class ProjectGutenberg(HuggingFaceDataset):
+    def __init__(self, save_dir: Path | str = 'dataset'):
+        super().__init__(
+            repo_id='common-pile/project_gutenberg_filtered',
+            dataset_name='gutenberg',
+            save_dir=save_dir,
+            data_file_extension=DataFileExtension.JSON_GZ)
 
-        if log:
-            for f in parquet_files[:SHOW_NUM]:
-                logger.info(f)
-            logger.info('...')
-            for f in parquet_files[-SHOW_NUM:]:
-                logger.info(f)
-            logger.info(f'Found {len(parquet_files)} parquet files')
+    def inspect(self) -> None:
+        path = self._sample_data_file()
 
-        return parquet_files
-    
-    def download_single_file(self, filename='data/train-00000-of-09831.parquet'):
-        hf_hub_download(
-            cache_dir='dataset/cache', 
-            local_dir='dataset/institution_books',
-            repo_type="dataset", 
-            repo_id=self.tag,
-            filename=filename
-        )
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            for jsonl in f:
+                record = json.loads(jsonl)
+                self.inspect_dict(record)
+                break
 
-    def download_bulk(self, num_files=32, max_workers=16):
-        include_files = self.ls(log=False)[:32]
-        snapshot_download(
-            cache_dir='dataset/cache', 
-            local_dir='dataset/institution_books',
-            repo_type="dataset", 
-            repo_id=self.tag, 
-            allow_patterns=include_files,
-            max_workers=max_workers
-        )
-    
 
-    def inspect_parquet(self):
-        pq_paths = Path('dataset/institution_books').rglob('*.parquet')
-        p = next(pq_paths)
+class InstitutionalBooks(HuggingFaceDataset):
+    def __init__(self, save_dir: Path | str = 'dataset'):
+        super().__init__(
+            repo_id='institutional/institutional-books-1.0',
+            dataset_name='institutional',
+            save_dir=save_dir,
+            data_file_extension=DataFileExtension.PARQUET)
+
+    def inspect(self) -> None:
+        p = self._sample_data_file()
         f = pq.ParquetFile(p)
 
-        row = pq.read_table(p).slice(0, 1).to_pandas().iloc[0]
-
-        def keys_tree(obj):
-            if isinstance(obj, dict):
-                return {k: keys_tree(v) for k, v in obj.items()}
-            return type(obj).__name__
-
-        tree = keys_tree(row.to_dict())
-
-        console = Console()
-        logger.info('Displaying keys')
-        console.print_json(json.dumps(tree, indent=4))
-        logger.info(f'Num rows {f.metadata.num_rows} found in {p}')
+        record = (
+            pq
+            .read_table(p)
+            .slice(0, 1)
+            .to_pandas()
+            .iloc[0]
+            .to_dict()
+        )
+        self.inspect_dict(record)
