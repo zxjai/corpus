@@ -6,5 +6,6 @@ from omegaconf import DictConfig
 def cc_processor(config: DictConfig) -> None:
     print(config, type(config))
 
+
 if __name__ == "__main__":
     cc_processor()
