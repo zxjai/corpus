@@ -7,6 +7,18 @@ from pathlib import Path
 from loguru import logger
 from tqdm import tqdm
 
+from corpus.datasets.base import DataFileExtension, HuggingFaceDataset
+
+
+class StackV2(HuggingFaceDataset):
+    def __init__(self, save_dir: Path | str = "dataset"):
+        super().__init__(
+            repo_id="bigcode/the-stack-v2-dedup",
+            dataset_name="code_stack_v2",
+            save_dir=save_dir,
+            data_file_extension=DataFileExtension.PARQUET,
+        )
+
 
 class GitHubDiscovery:
     def __init__(self, save_dir="dataset"):

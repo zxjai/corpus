@@ -13,7 +13,8 @@ from typing import Optional
 import fsspec
 import requests
 from filelock import FileLock
-from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
+from huggingface_hub import HfApi, hf_hub_download, list_repo_files, snapshot_download
+from huggingface_hub.hf_api import RepoFolder
 from loguru import logger
 from rich.console import Console
 from rich.table import Table
@@ -203,7 +204,7 @@ class WikipediaDataset:
         bz2_url = f"{self.base_url}/{shard_path}"
         with fsspec.open(bz2_url, "r", compression="bz2") as f:
             # do work
-            print(f.readline())
+            logger.info(f.readline())
 
     def _download_dir(self) -> Path:
         p = self.save_dir / "raw"
@@ -253,6 +254,26 @@ class HuggingFaceDataset:
                 logger.info(f)
 
         return data_files
+
+    def ls_all(self, folders_only=True, recursive=True):
+        results = []
+        i = 0
+        api = HfApi()
+        for item in api.list_repo_tree(
+            self.repo_id, repo_type="dataset", recursive=recursive
+        ):
+            kind = "directory" if isinstance(item, RepoFolder) else "file"
+            if kind == "directory":
+                i += 1
+                logger.info(f"item {i} | {kind} | {item.path}")
+                results.append(item.path)
+            if not folders_only and kind == "file":
+                i += 1
+                logger.info(f"item {i} | {kind} | {item.path}")
+                results.append(item.path)
+
+        logger.info(f"Found {len(results)} items.")
+        return results
 
     def download_single_file(self, filename: Optional[str] = None) -> None:
         if filename is None:

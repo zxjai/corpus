@@ -6,6 +6,8 @@
 [The Stack V2](https://arxiv.org/pdf/2402.19173)
 [Stack EDU](https://arxiv.org/pdf/2502.02737)
 
+TODO: https://huggingface.co/datasets/bigcode/starcoderdata
+
 
 
 # Post-training
