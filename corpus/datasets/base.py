@@ -4,6 +4,7 @@ import json
 import os
 import re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -39,31 +40,106 @@ class WikipediaDataset:
         pat = r'href="(enwiki-[\w\-.]+\.xml\.bz2)"'
         return re.findall(pat, res.text)
 
-    def download_single_shard(self, shard_path: Optional[str] = None):
+    def download_single_shard(self, shard_path: Optional[str] = None, description: str=None):
+
         if shard_path is None:
             shard_path = sorted(self.get_shards_paths())[0]
 
         url = f'{self.base_url}/{shard_path}'
-        dest = self.save_dir / shard_path
+        save_path = self._download_dir() / shard_path
 
-        lock_path = dest.with_suffix(dest.suffix + ".lock")
+        lock_path = save_path.with_suffix(save_path.suffix + ".lock")
+        part_path = save_path.with_suffix(save_path.suffix + ".part")
 
         with FileLock(str(lock_path)):
-            if dest.exists() and dest.stat().st_size > 0:
-                return
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                total = int(r.headers.get("content-length", 0))
-                with open(dest, "wb") as f, tqdm(total=total, unit="B", unit_scale=True, desc=shard_path) as pbar:
-                    for chunk in r.iter_content(chunk_size=4 * 1024 * 1024):
-                        f.write(chunk)
-                        pbar.update(len(chunk))
 
-    def remote_open(self, bz2_url):
-        with fsspec.open(bz2_url, "r", compression="bz2") as f:
-            print(f.readline())
+            if save_path.exists() and save_path.stat().st_size > 0:
+                logger.info(f'{save_path} exists')
+                return save_path
             
+            offset = part_path.stat().st_size if part_path.exists() else 0
+            headers = {"Range": f"bytes={offset}-"} if offset else {}
 
+            with requests.get(url, stream=True, headers=headers) as r:
+                if offset and r.status_code == 416:
+                    logger.info(f'{shard_path} fully downloaded, skipping')
+                    os.replace(part_path, save_path)
+                    return save_path
+                if offset and r.status_code == 200:
+                    logger.warning(f'Server ignored range for {shard_path}, re-downloading')
+                    part_path.unlink(missing_ok=True)
+                    offset = 0
+
+                r.raise_for_status()
+                content_len = int(r.headers.get("content-length", 0))
+                total_len = offset + content_len if content_len else None
+                mode = "ab" if offset else "wb"
+
+                desc = description if description else shard_path
+                with open(part_path, mode) as f, tqdm(initial=offset, total=total_len, unit="B", unit_scale=True, desc=desc) as progress_bar:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                        f.write(chunk)
+                        progress_bar.update(len(chunk))
+
+            if total_len is not None and part_path.stat().st_size != total_len:
+                raise IOError(f'Download for {shard_path} is incomplete')
+            os.replace(part_path, save_path)
+            logger.info(f'Downloaded {shard_path}')
+
+        return save_path
+    
+    def download_bulk(self):
+
+        max_workers=3 # Wikipedia's concurrent requests is 3
+        
+        files = self.get_shards_paths()
+        assert len(files), 'No files found'
+        logger.info(f'Donwloading {len(files)} shards')
+        downloaded = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_shard = {
+                executor.submit(self.download_single_shard, shard, f'file-{i+1}-of-{len(files)}'): shard
+                for i, shard in enumerate(files)
+            }
+            for future in as_completed(future_to_shard):
+                shard = future_to_shard[future]
+                try:
+                    downloaded.append(future.result())
+                except Exception as e:
+                    logger.error(f'Failed to download {shard}: {e}')
+
+        logger.info(f'Downloaded {len(downloaded)}/{len(files)} shards')
+
+        return downloaded
+
+
+    def remote_open(self, shard_path: Optional[str] = None):
+        """
+        Shard path is relative to base_url
+        Example 
+            enwiki-2026-04-01-p23970571p28987923.xml.bz2
+        """
+        if shard_path is None:
+            paths = self.get_shards_paths()
+            assert paths
+            shard_path = paths[0]
+        
+        bz2_url = f'{self.base_url}/{shard_path}'
+        with fsspec.open(bz2_url, "r", compression="bz2") as f:
+            # do work
+            print(f.readline())
+
+    def _download_dir(self) -> Path:
+        p = self.save_dir / 'raw'
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def _processed_dir(self) -> Path:
+        p = self.save_dir / 'processed'
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+            
+            
 
 class HuggingFaceDataset:
     def __init__(self, repo_id: str, dataset_name: str, save_dir: Path | str, data_file_extension: DataFileExtension):
