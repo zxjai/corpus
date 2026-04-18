@@ -140,5 +140,5 @@ class GitHubDiscovery:
         with open(save_path, "w") as f:
             f.write(json.dumps(data, indent=4))
 
-        logger.info(f'Saving {save_path}')
+        logger.info(f"Saving {save_path}")
         return save_path
