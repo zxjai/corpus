@@ -9,4 +9,5 @@ def test_gd():
 
 def test_stack():
     dataset = StackV2()
-    dataset.ls_all()
+    # dataset.ls_all()
+    dataset.ls(show_num=3)

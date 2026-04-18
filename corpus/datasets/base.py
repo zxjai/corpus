@@ -7,6 +7,7 @@ import re
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Optional
 
@@ -25,6 +26,7 @@ class DataFileExtension(Enum):
     CSV = ".csv"
     JSON = ".json"
     JSON_GZ = ".json.gz"
+    JSONL_ZST = ".jsonl.zst"
     JSONL = ".jsonl"
     PARQUET = ".parquet"
     XML_GZ = ".xml.bz2"
@@ -224,35 +226,52 @@ class HuggingFaceDataset:
         dataset_name: str,
         save_dir: Path | str,
         data_file_extension: DataFileExtension,
+        include_dir: Optional[list[str]] = None,
     ):
         self.repo_id = repo_id
         self.dataset_name = dataset_name
         self.dataset_dir = Path(save_dir) / dataset_name
         self.data_file_extension = data_file_extension
+        if include_dir:
+            self.include_dir = include_dir
 
     def process(self):
         """Extract raw files to get processed files."""
         # processed_dir = self._processed_dir()  # path
         return NotImplemented
 
-    def ls(self, log: bool = True, show_num: int = 2) -> list[str]:
+    def ls(self, log: bool = True, show_num: int = 2, recursive=True) -> list[str]:
+
+        # normalize search patterns
+        suffix = "/**" if recursive else "/*"
+        patterns = (
+            [p if "*" in p else f"{p.rstrip('/')}{suffix}" for p in self.include_dir]
+            if self.include_dir
+            else None
+        )
 
         data_files = [
             f
             for f in list_repo_files(repo_id=self.repo_id, repo_type="dataset")
             if f.endswith(self.data_file_extension.value)
+            and (patterns is None or any(fnmatch(f, pat) for pat in patterns))
         ]
 
         if log:
             logger.info(
                 f"Found {len(data_files)} {self.data_file_extension.value} files"
             )
-            for f in data_files[:show_num]:
-                logger.info(f)
-            logger.info("...")
-            for f in data_files[-show_num:]:
-                logger.info(f)
 
+            print(len(data_files), show_num)
+            if len(data_files) <= 2 * show_num:
+                for f in data_files:
+                    logger.info(f)
+            else:
+                for f in data_files[:show_num]:
+                    logger.info(f)
+                logger.info("...")
+                for f in data_files[-show_num:]:
+                    logger.info(f)
         return data_files
 
     def ls_all(self, folders_only=True, recursive=True):
@@ -359,3 +378,9 @@ class HuggingFaceDataset:
     def inspect_dict(self, sample_dict):
         self._print_keys(sample_dict)
         self._print_nested_dict(sample_dict)
+
+    def sample_local_file(self):
+        search_pattern = "*" + self.data_file_extension.value
+        paths = sorted(self._download_dir().rglob(search_pattern))
+        assert len(paths), f"No files found with extension {search_pattern}"
+        return paths[0]

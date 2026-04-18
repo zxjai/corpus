@@ -9,6 +9,20 @@ from tqdm import tqdm
 
 from corpus.datasets.base import DataFileExtension, HuggingFaceDataset
 
+langs = [
+    "C",
+    "C++",
+    "Go",
+    "Rust",
+    "Java",
+    "Lean",
+    "R",
+    "Stan",
+    "Stata",
+    "TeX",
+    "Python",
+]
+
 
 class StackV2(HuggingFaceDataset):
     def __init__(self, save_dir: Path | str = "dataset"):
@@ -17,6 +31,8 @@ class StackV2(HuggingFaceDataset):
             dataset_name="code_stack_v2",
             save_dir=save_dir,
             data_file_extension=DataFileExtension.PARQUET,
+            # include_dir can be modified
+            include_dir=[f"data/{lang}" for lang in langs],
         )
 
 
