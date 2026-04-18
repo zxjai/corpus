@@ -9,6 +9,7 @@
 [The Stack V2](https://arxiv.org/pdf/2402.19173)
 [Stack EDU](https://arxiv.org/pdf/2502.02737)
 [Proof Pile V2](https://huggingface.co/datasets/EleutherAI/proof-pile-2)
+[OpenWebMath](https://huggingface.co/datasets/open-web-math/open-web-math)
 
 TODO: https://huggingface.co/datasets/bigcode/starcoderdata
 

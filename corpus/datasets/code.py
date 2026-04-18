@@ -4,6 +4,7 @@ import urllib.request
 from collections import Counter
 from pathlib import Path
 
+import requests
 from loguru import logger
 from tqdm import tqdm
 
@@ -38,7 +39,7 @@ class StackV2(HuggingFaceDataset):
 
 class GitHubDiscovery:
     def __init__(self, save_dir="dataset"):
-        self.save_dir = Path(save_dir) / "github_archive"
+        self.save_dir = Path(save_dir) / "github_discovery"
         self.save_dir.mkdir(exist_ok=True, parents=True)
 
     def ls_archive_files(self):
@@ -106,3 +107,38 @@ class GitHubDiscovery:
         p = self.save_dir / "statistics"
         p.mkdir(parents=True, exist_ok=True)
         return p
+
+    def most_starred_by_lang(self, lang: str, page=1):
+        api_endpoint = "https://api.github.com/search/repositories"
+
+        lang = lang.strip()
+        assert len(lang)
+
+        params = {
+            "q": f"language:{lang}",
+            "sort": "stars",
+            "order": "desc",
+            "per_page": 100,
+            "page": page,
+        }
+
+        headers = {
+            "Accept": "application/vnd.github+json",
+            # "Authorization": "Bearer YOUR_TOKEN"
+        }
+
+        resp = requests.get(api_endpoint, params=params, headers=headers)
+        resp.raise_for_status()
+
+        data = resp.json()
+        repos = data["items"]
+
+        for i, repo in enumerate(repos, 1):
+            logger.info(f"{i:3}. {repo['full_name']} ⭐ {repo['stargazers_count']}")
+
+        save_path = self.save_dir / f"{lang}_lang_top_100_repo_by_star.json"
+        with open(save_path, "w") as f:
+            f.write(json.dumps(data, indent=4))
+
+        logger.info(f'Saving {save_path}')
+        return save_path
