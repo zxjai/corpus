@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#SBATCH --job-name=dist
+
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=1
@@ -26,14 +28,6 @@ ip_head=$head_ip:$port
 export ip_head
 echo "IP Head: $ip_head"
 
-# echo "ssh -N -L 8265:localhost:8265 $USER@$head_node" > tunnel.sh
-
-cat > tunnel.sh <<EOF
-echo "Tunneling ... starting dashboard at localhost:8265"
-ssh -N -L 8265:localhost:8265 $USER@$head_node
-EOF
-chmod +x tunnel.sh
-
 
 # --- 2. Start head ---
 srun --nodes=1 --ntasks=1 -w "$head_node" \
@@ -55,6 +49,14 @@ for ((i = 1; i <= worker_num; i++)); do
             --block &
     sleep 5
 done
+
+# echo "ssh -N -L 8265:localhost:8265 $USER@$head_node" > tunnel.sh
+
+cat > tunnel.sh <<EOF
+echo "Tunneling ... dashboard at localhost:8265"
+ssh -N -L 8265:localhost:8265 $USER@$head_node
+EOF
+chmod +x tunnel.sh
 
 # --- 4. Hold the allocation ---
 echo "Ray cluster up at $ip_head"
