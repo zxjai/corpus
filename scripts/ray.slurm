@@ -28,11 +28,13 @@ ip_head=$head_ip:$port
 export ip_head
 echo "IP Head: $ip_head"
 
+ray_tmp=$(pwd)/ray_tmp
 
 # --- 2. Start head ---
 srun --nodes=1 --ntasks=1 -w "$head_node" \
     ray start --head \
         --node-ip-address="$head_ip" \
+        --temp-dir="$ray_tmp" \
         --port=$port \
         --num-cpus="${SLURM_CPUS_PER_TASK}" \
         --block &
@@ -45,6 +47,7 @@ for ((i = 1; i <= worker_num; i++)); do
     echo "Starting worker on $node_i"
     srun --nodes=1 --ntasks=1 -w "$node_i" \
         ray start --address="$ip_head" \
+            --temp-dir="$ray_tmp" \
             --num-cpus="${SLURM_CPUS_PER_TASK}" \
             --block &
     sleep 5

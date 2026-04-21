@@ -232,8 +232,7 @@ class HuggingFaceDataset:
         self.dataset_name = dataset_name
         self.dataset_dir = Path(save_dir) / dataset_name
         self.data_file_extension = data_file_extension
-        if include_dir:
-            self.include_dir = include_dir
+        self.include_dir = include_dir
 
     def process(self):
         """Extract raw files to get processed files."""
