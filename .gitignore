@@ -16,3 +16,5 @@ slurm_logs/
 tunnel.sh
 dataset
 model
+y.sh
+zrr
