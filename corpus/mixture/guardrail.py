@@ -11,6 +11,15 @@ class GPTGuard(GuardrailModel):
         )
 
 
+class GPTPrivacy(GuardrailModel):
+    def __init__(self, save_dir="models"):
+        super().__init__(
+            repo_id="openai/privacy-filter",
+            name="gptoss_privacy_filter",
+            save_dir=save_dir,
+        )
+
+
 class PerplexityGuard(GuardrailModel):
     def __init__(self, save_dir="models"):
         super().__init__(

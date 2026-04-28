@@ -28,7 +28,6 @@ class EmbeddingModel:
         return p
 
 
-
 class GuardrailModel:
     def __init__(self, repo_id: str, name: str, save_dir: str):
         self.repo_id = repo_id

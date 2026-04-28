@@ -38,6 +38,23 @@ build-backend = "hatchling.build"
 addopts = "-s"
 testpaths = ["tests"]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "off"
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "off"
+reportCallIssue = "none"
+reportArgumentType = "none"
+reportAttributeAccessIssue = "none"
+reportPossiblyUnbound = "none"
+reportGeneralTypeIssues = "none"
+
 [dependency-groups]
 dev = [
     "isort>=8.0.1",

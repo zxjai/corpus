@@ -1,6 +1,9 @@
 srun --nodes=1 --cpus-per-task=8 --mem=30G --time=3:00:00 --pty bash
 
-srun --gres=gpu:h100:1 --cpus-per-task=8 --mem=80G --time=2:00:00 --pty bash
+srun --gres=gpu:h100:2 --cpus-per-task=16 --mem=160G --time=00:15:00 --pty bash
+
+srun --gres=gpu:h100:2 --cpus-per-task=16 --mem=160G --time=00:15:00 source /home/xuejzhao/workspace/corpus/.venv/bin/activate && python /home/xuejzhao/workspace/corpus/backends/cluster.py
+
 
 uv sync --all-extras 
 

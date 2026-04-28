@@ -30,6 +30,7 @@ class DataFileExtension(Enum):
     JSONL = ".jsonl"
     PARQUET = ".parquet"
     XML_GZ = ".xml.bz2"
+    JPG = ".jpg"
 
 
 class WikipediaDataset:

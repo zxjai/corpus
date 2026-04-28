@@ -54,13 +54,13 @@ class PerplexityEmbed(EmbeddingModel):
         return f"This is the {self.model_size}B parameter Perplexity multilingual embedding model."
 
     def prepare_model(self):
-        logger.info('Downloading model')
+        logger.info("Downloading model")
         self.download()
-        logger.info('Loading model')
+        logger.info("Loading model")
         self.model = SentenceTransformer(self._download_dir(), trust_remote_code=True)
-    
+
     def embed(self, texts):
-        return  self.model.encode(texts)
+        return self.model.encode(texts)
 
 
 class PerplexityContextEmbed(EmbeddingModel):
@@ -74,7 +74,6 @@ class PerplexityContextEmbed(EmbeddingModel):
 
     def __repr__(self):
         return f"This is the {self.model_size}B parameter context aware Perplexity multilingual embedding model."
-
 
 
 class GemmaEmbed(EmbeddingModel):
