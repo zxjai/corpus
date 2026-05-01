@@ -89,13 +89,24 @@ class GemmaEmbed(EmbeddingModel):
 class GraniteMultilingualEmbed(EmbeddingModel):
     def __init__(self, save_dir="models"):
         super().__init__(
-            repo_id="ibm-granite/granite-embedding-107m-multilingual",
+            repo_id="ibm-granite/granite-embedding-97m-multilingual-r2", # More variants at https://huggingface.co/collections/ibm-granite/granite-embedding
             name="granite_embed",
             save_dir=save_dir,
         )
 
     def __repr__(self):
-        return "Granite is a 107M parameter tiny multilingual embedding model."
+        return "Granite multilingual is a 97M parameter tiny embedding model."
+
+class GraniteEnglishEmbed(EmbeddingModel):
+    def __init__(self, save_dir="models"):
+        super().__init__(
+            repo_id="ibm-granite/granite-embedding-30m-english",
+            name="granite_embed",
+            save_dir=save_dir,
+        )
+
+    def __repr__(self):
+        return "Granite English is a 30M parameter tiny embedding model."
 
 
 if __name__ == "__main__":
